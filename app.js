@@ -12,7 +12,8 @@ var game = require('./game');
 var twitchirc = require('./twitchirc');
 
 var app = express();
-
+var currentMessages = [];
+var chalk = require('chalk');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -62,3 +63,87 @@ app.use(function(err, req, res, next) {
 
 
 module.exports = app;
+
+setInterval(function () {
+  currentMessages = twitchirc.getCurrentMessages();
+  voteHash = consumeMessages(currentMessages);
+
+}, 15000);
+
+twitchirc.startIrcFeed();
+
+var consumeMessages = function(messages) {
+  "use strict";
+  var votes = [];
+
+  Object.keys(messages).forEach(function(key) {
+    votes.push(messages[key]);
+  });
+
+  // here's where we'd get the valid ones
+  var legalMoves = game.getValidMoves(votes);
+  printVotes(sortVotes(countVotes(legalMoves)));
+  return votes;
+};
+
+var countVotes = function(voteList) {
+  return voteList.reduce(function(result, current) {
+    console.log(result, current, voteList);
+    if (typeof(result[current]) === "undefined") {
+      result[current] = 1;
+    } else {
+      result[current] += 1;
+    }
+    return result;
+  }, {});
+};
+
+ var sortVotes = function(votes) {
+     var sortedVotes = [];
+     var done = false;
+     Object.keys(votes).forEach(function(language) {
+      // sortedVotes.forEach(function(element, index, array) {
+         for (var i = 0; i < sortedVotes.length && !done; i++) {
+             console.log("language", language, "votes[language]", votes[language]);
+             if (sortedVotes.length === 0) {
+                 sortedVotes.push({
+                     "langName": language,
+                     "totalVotes": votes[language]
+                 });
+                 done = true;
+             } else if (votes[language] > sortedVotes[i]["totalVotes"]) {
+                 sortedVotes.splice(i, 0, {
+                     "langName": language,
+                     "totalVotes": votes[language]
+                 });
+                 done = true;
+             }
+         }
+         if (!done) {
+             sortedVotes.push({
+                 "langName": language,
+                 "totalVotes": votes[language]
+             });
+         }
+         done = false;
+     });
+     return (sortedVotes);
+ };
+
+  var printVotes = function(votes) {
+
+    if(votes == undefined || votes.length === 0) {
+        // console.log(chalk.red("Sorry - voter apathy is at an all time high!"));
+    } else {
+        console.log("The winner is:\t", chalk.green(votes[0]["langName"]), 
+                    "with", chalk.green(votes[0]["totalVotes"]), (votes[0]["totalVotes"]>1)?"votes!":"vote!");
+        for (var i = 1; i < votes.length; i++) {
+            if (i ===1) {
+
+                console.log("\nAnd your runners up!");
+            }
+            console.log("             \t", chalk.yellow(votes[i]["langName"]), 
+                    ":", chalk.yellow(votes[i]["totalVotes"]));
+        }
+    }
+ };

@@ -24,5 +24,11 @@ exports.getValidMoves = function(moves) {
  	return moves.filter(exports.isValidMove);
 };
 
+
+exports.playNextMove = function(move) {
+
+	// moves is an array of messages.
+ 	console.log("Playing move", move);
+};
 // isValidMove('k');
 // isValidMove('q');
